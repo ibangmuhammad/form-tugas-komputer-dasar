@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulir Pengumpulan Tugas</title>
+    <!-- Memuat Tailwind CSS untuk tampilan yang cepat dan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Warna latar belakang lembut */
+        }
+        .container {
+            max-width: 600px;
+        }
+        .file-input-label {
+            cursor: pointer;
+            border: 2px dashed #93c5fd; /* Garis putus-putus biru muda */
+            transition: all 0.3s ease;
+        }
+        .file-input-label:hover {
+            border-color: #3b82f6; /* Warna biru lebih gelap saat hover */
+            background-color: #e0f2fe; /* Latar belakang sangat muda saat hover */
+        }https://script.google.com/macros/s/AKfycby3BAhKwIbTRvO-xKoA23L0PAUQTjh4zrmYPMbeZt1KiORoQjNYHDj6rz5WQvvFpv9T/exec
+    </style>
+</head>
+<body class="p-4 md:p-8 flex items-center justify-center min-h-screen">
+
+    <div class="container w-full bg-white p-6 md:p-10 shadow-2xl rounded-xl border border-blue-100">
+
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                Kumpulkan Tugas Anda
+            </h1>
+            <p class="text-gray-500">
+                Silakan isi detail tugas dan unggah file Anda. Tugas akan langsung tersimpan di Google Drive Guru.
+            </p>
+        </header>
+
+        <!-- 
+            !!! SANGAT PENTING !!!
+            GANTI placeholder action ini dengan URL Web App Apps Script Anda! 
+            Contoh: https://script.google.com/macros/s/AKfycbzzxxxxxxxxxxxxx/exec
+        -->
+        <form id="submissionForm" 
+              action="https://script.google.com/macros/s/AKfycbwj-uhOAZot_ARPiouh9y1QliFuqLomDaLg84wNMZaOGqKK4AVpeK4sL6dT0Vm4iU2U/exec" 
+              method="POST" 
+              enctype="multipart/form-data" 
+              target="hiddenFrame">
+            
+            <!-- Bidang Nama Murid -->
+            <div class="mb-6">
+                <label for="studentName" class="block text-sm font-medium text-gray-700 mb-2">Nama Murid Lengkap</label>
+                <input type="text" id="studentName" name="studentName" required 
+                       placeholder="Contoh: Budi Santoso"
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+            </div>
+
+            <!-- Bidang Nama Tugas -->
+            <div class="mb-6">
+                <label for="assignmentTitle" class="block text-sm font-medium text-gray-700 mb-2">Judul Tugas / Mata Pelajaran</label>
+                <input type="text" id="assignmentTitle" name="assignmentTitle" required 
+                       placeholder="Contoh: Esai Sejarah Kemerdekaan"
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+            </div>
+
+            <!-- Bidang Unggah File -->
+            <div class="mb-6">
+                <label for="fileUpload" class="block text-sm font-medium text-gray-700 mb-2">Unggah File Tugas</label>
+                <label for="fileUpload" class="file-input-label flex flex-col items-center justify-center w-full p-6 bg-gray-50 rounded-lg text-gray-500">
+                    <svg class="w-8 h-8 mb-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.885 2.154A4 4 0 013 18m13 0a4 4 0 00.885-2.154A4 4 0 0021 16m-4-7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v4m4-4h.01M9 12h6m-3 3v-6"></path></svg>
+                    <span id="fileNameDisplay" class="text-sm font-medium">Pilih file atau seret ke sini</span>
+                    <span class="text-xs text-gray-400 mt-1">Hanya file tunggal. Maks. ukuran file tergantung limit Google Apps Script.</span>
+                </label>
+                <input type="file" id="fileUpload" name="fileUpload" required class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt">
+            </div>
+
+            <!-- Kotak Pesan Status -->
+            <div id="statusMessage" class="hidden p-4 mb-6 text-sm rounded-lg font-medium" role="alert"></div>
+
+            <!-- Tombol Submit -->
+            <button type="submit" id="submitButton"
+                    class="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 ease-in-out">
+                Kirim Tugas
+            </button>
+        </form>
+
+        <!-- iframe tersembunyi untuk menerima respons Apps Script tanpa me-refresh halaman -->
+        <iframe name="hiddenFrame" id="hiddenFrame" style="display:none;" onload="handleResponse()"></iframe>
+    </div>
+
+    <script>
+        const form = document.getElementById('submissionForm');
+        const fileInput = document.getElementById('fileUpload');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const statusMessage = document.getElementById('statusMessage');
+        const submitButton = document.getElementById('submitButton');
+        const hiddenFrame = document.getElementById('hiddenFrame');
+
+        // Memperbarui nama file yang dipilih
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileNameDisplay.textContent = e.target.files[0].name;
+            } else {
+                fileNameDisplay.textContent = 'Pilih file atau seret ke sini';
+            }
+        });
+
+        // Menambahkan feedback visual saat form dikirim
+        form.addEventListener('submit', function(e) {
+            // Tampilkan pesan loading
+            submitButton.disabled = true;
+            submitButton.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Mengirim... Jangan Tutup Halaman
+            `;
+            
+            // Sembunyikan pesan status sebelumnya
+            statusMessage.classList.add('hidden');
+        });
+        
+        // Fungsi ini dipanggil ketika Apps Script merespons (di dalam iframe)
+        function handleResponse() {
+            const frameContent = hiddenFrame.contentWindow.document.body.innerHTML;
+            
+            // Reset tombol
+            submitButton.disabled = false;
+            submitButton.textContent = 'Kirim Tugas';
+
+            // Bersihkan styling pesan
+            statusMessage.className = 'p-4 mb-6 text-sm rounded-lg font-medium';
+            statusMessage.classList.remove('hidden');
+
+            if (frameContent.includes("SUCCESS") || frameContent.includes("Terima kasih!")) {
+                // Tampilan Sukses
+                statusMessage.classList.add('bg-green-100', 'text-green-800');
+                statusMessage.innerHTML = '✅ Tugas berhasil dikirim! Silakan periksa kembali file Anda.';
+                form.reset(); // Reset form setelah sukses
+                fileNameDisplay.textContent = 'Pilih file atau seret ke sini';
+            } else if (frameContent.includes("ERROR") || frameContent.includes("Gagal")) {
+                // Tampilan Error
+                statusMessage.classList.add('bg-red-100', 'text-red-800');
+                statusMessage.innerHTML = '❌ Gagal mengirim tugas. Error: ' + frameContent.replace('ERROR:', '').substring(0, 100) + '...';
+            } else {
+                // Tampilan Respon tidak terduga (jika skrip tidak mengembalikan pesan spesifik)
+                statusMessage.classList.add('bg-yellow-100', 'text-yellow-800');
+                statusMessage.innerHTML = '⚠️ Pengiriman selesai, namun respon tidak terduga. Silakan hubungi Guru Anda untuk konfirmasi.';
+            }
+        }
+        
+        // Agar fungsi handleResponse bisa diakses dari atribut onload iframe
+        window.handleResponse = handleResponse;
+
+    </script>
+
+</body>
+</html>
